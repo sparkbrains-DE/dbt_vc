@@ -1,22 +1,92 @@
+# name: dbt-prod-run
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   run-dbt-prod:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # 1️⃣ Checkout repository
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       # 2️⃣ Setup Python
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.10"
+
+#       # 3️⃣ Install dbt Snowflake adapter
+#       - name: Install dbt
+#         run: |
+#           pip install --upgrade pip
+#           pip install dbt-snowflake
+
+#       - name: Create profiles.yml
+#         run: |
+#           mkdir -p ~/.dbt
+#           cat << EOF > ~/.dbt/profiles.yml
+#           dbt_demo:
+#             target: prod
+#             outputs:
+#               prod:
+#                 type: snowflake
+#                 account: ${{ secrets.SF_ACCOUNT }}
+#                 user: ${{ secrets.SF_USER }}
+#                 password: ${{ secrets.SF_PASSWORD }}
+#                 role: ${{ secrets.SF_ROLE }}
+#                 database: ${{ secrets.SF_DATABASE }}
+#                 warehouse: ${{ secrets.SF_WAREHOUSE }}
+#                 schema: ${{ secrets.SF_SCHEMA }}
+#                 threads: 8
+#           EOF
+
+#       # 5️⃣ Validate dbt setup (IMPORTANT)
+#       - name: dbt debug
+#         run: dbt debug --project-dir dbt_demo
+
+#       # 6️⃣ Install dbt packages
+#       - name: dbt deps
+#         run: dbt deps --project-dir dbt_demo
+
+#       # 7️⃣ Run dbt models in PROD
+#       - name: dbt run (PROD)
+#         run: dbt run --project-dir dbt_demo --target prod
+
+#       # 8️⃣ Run dbt tests in PROD
+#       - name: dbt test (PROD)
+#         run: dbt test --project-dir dbt_demo --target prod
+
+
+
+
+
+
+
+
+
+
+
 name: dbt-prod-run
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  run-dbt-prod:
+  dbt-prod:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # 1️⃣ Checkout code
+      - uses: actions/checkout@v4
 
       # 2️⃣ Setup Python
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -26,11 +96,12 @@ jobs:
           pip install --upgrade pip
           pip install dbt-snowflake
 
+      # 4️⃣ Create profiles.yml (PROD)
       - name: Create profiles.yml
         run: |
           mkdir -p ~/.dbt
           cat << EOF > ~/.dbt/profiles.yml
-          dbt_demo:
+          dbt_project:
             target: prod
             outputs:
               prod:
@@ -45,18 +116,40 @@ jobs:
                 threads: 8
           EOF
 
-      # 5️⃣ Validate dbt setup (IMPORTANT)
+      # 5️⃣ Validate dbt config
       - name: dbt debug
-        run: dbt debug --project-dir dbt_demo
+        run: dbt debug --project-dir dbt_project
 
       # 6️⃣ Install dbt packages
       - name: dbt deps
-        run: dbt deps --project-dir dbt_demo
+        run: dbt deps --project-dir dbt_project
 
       # 7️⃣ Run dbt models in PROD
       - name: dbt run (PROD)
-        run: dbt run --project-dir dbt_demo --target prod
+        run: dbt run --project-dir dbt_project --target prod
 
       # 8️⃣ Run dbt tests in PROD
       - name: dbt test (PROD)
-        run: dbt test --project-dir dbt_demo --target prod
+        run: dbt test --project-dir dbt_project --target prod
+
+      # 9️⃣ Generate dbt docs
+      - name: Generate dbt docs
+        run: |
+          dbt docs generate \
+            --project-dir dbt_project \
+            --target prod
+
+      # 🔟 Upload dbt state (for Slim CI)
+      - name: Upload dbt state artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-state
+          path: dbt_project/target
+
+      # 📊 Upload dbt docs
+      - name: Upload dbt docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: dbt_project/target
+

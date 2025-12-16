@@ -64,113 +64,33 @@
 
 
 
-
-
-
-
-
-# name: dbt-prod-run
-
-# on:
-#   push:
-#     branches: [ main ]
-
-# permissions:
-#   contents: write   # required to commit manifest
-
-# jobs:
-#   dbt-prod:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Checkout repo
-#         uses: actions/checkout@v4
-
-#       - name: Setup Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: "3.10"
-
-#       - name: Install dbt
-#         run: |
-#           pip install --upgrade pip
-#           pip install dbt-snowflake
-
-#       - name: Create profiles.yml (PROD)
-#         run: |
-#           mkdir -p ~/.dbt
-#           cat << EOF > ~/.dbt/profiles.yml
-#           dbt_demo:
-#             target: prod
-#             outputs:
-#               prod:
-#                 type: snowflake
-#                 account: ${{ secrets.SF_ACCOUNT }}
-#                 user: ${{ secrets.SF_USER }}
-#                 password: ${{ secrets.SF_PASSWORD }}
-#                 role: ${{ secrets.SF_ROLE }}
-#                 database: ${{ secrets.SF_DATABASE }}
-#                 warehouse: ${{ secrets.SF_WAREHOUSE }}
-#                 schema: ${{ secrets.SF_SCHEMA }}
-#                 threads: 8
-#           EOF
-
-#       - name: dbt deps
-#         run: dbt deps --project-dir dbt_demo
-
-#       - name: dbt run (PROD)
-#         run: dbt run --project-dir dbt_demo --target prod
-
-#       - name: dbt test (PROD)
-#         run: dbt test --project-dir dbt_demo --target prod
-
-#       - name: Generate dbt docs
-#         run: dbt docs generate --project-dir dbt_demo --target prod
-
-#       # ⭐ SAVE PROD STATE FOR SLIM CI
-#       - name: Save prod manifest
-#         run: |
-#           mkdir -p dbt_state
-#           cp dbt_demo/target/manifest.json dbt_state/manifest.json
-
-#       - name: Commit prod manifest
-#         run: |
-#           git config user.name "github-actions"
-#           git config user.email "actions@github.com"
-#           git add dbt_state/manifest.json
-#           git commit -m "Update prod dbt manifest" || echo "No manifest changes"
-#           git push
-
-
-
-
-
 name: dbt-prod-run
 on:
   push:
-    branches: [ main ]
-    paths-ignore:
-      - 'dbt_state/manifest.json'
-permissions:
-  contents: write
+    branches:
+      - main
 jobs:
-  dbt-prod:
+  run-dbt-prod:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      # 1️⃣ Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
       
+      # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       
+      # 3️⃣ Install dbt Snowflake adapter
       - name: Install dbt
         run: |
           pip install --upgrade pip
           pip install dbt-snowflake
       
-      - name: Create profiles.yml (PROD)
+      # 4️⃣ Create profiles.yml
+      - name: Create profiles.yml
         run: |
           mkdir -p ~/.dbt
           cat << EOF > ~/.dbt/profiles.yml
@@ -189,36 +109,41 @@ jobs:
                 threads: 8
           EOF
       
+      # 5️⃣ Validate dbt setup
+      - name: dbt debug
+        run: dbt debug --project-dir dbt_demo
+      
+      # 6️⃣ Install dbt packages
       - name: dbt deps
         run: dbt deps --project-dir dbt_demo
       
+      # 7️⃣ Run dbt models in PROD
       - name: dbt run (PROD)
         run: dbt run --project-dir dbt_demo --target prod
       
+      # 8️⃣ Run dbt tests in PROD
       - name: dbt test (PROD)
         run: dbt test --project-dir dbt_demo --target prod
       
+      # 9️⃣ Generate dbt documentation
       - name: Generate dbt docs
-        run: dbt docs generate --project-dir dbt_demo --target prod
-      
-      - name: Save prod manifest
         run: |
-          mkdir -p dbt_state
-          cp dbt_demo/target/manifest.json dbt_state/manifest.json
+          dbt docs generate --project-dir dbt_demo --target prod
       
-      - name: Commit prod manifest
+      # 🔟 Copy generated docs to publishable directory
+      - name: Prepare docs for publishing
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add dbt_state/manifest.json
-          git pull --rebase origin main  # ← Move AFTER git add
-          git commit -m "Update prod dbt manifest [skip ci]" || echo "No manifest changes"
-          git push
-    
-      # 📚 SAVE DOCS (choose one option)
-      - name: Upload dbt docs
-        uses: actions/upload-artifact@v4
+          mkdir -p docs_site
+          cp dbt_demo/target/index.html docs_site/
+          cp dbt_demo/target/catalog.json docs_site/
+          cp dbt_demo/target/manifest.json docs_site/
+          cp dbt_demo/target/run_results.json docs_site/ || true
+      
+      # 1️⃣1️⃣ Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: dbt-docs
-          path: dbt_demo/target/
-          retention-days: 30
+          github_token: ${{ secrets.GH_TOKEN }}
+          publish_dir: ./docs_site
+          publish_branch: gh-pages
+          keep_files: false

@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir -p ~/.dbt
           cat << EOF > ~/.dbt/profiles.yml
-          my_dbt_project:
+          dbt_demo:
             target: prod
             outputs:
               prod:

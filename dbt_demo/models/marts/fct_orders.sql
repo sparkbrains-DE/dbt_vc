@@ -1,5 +1,5 @@
 {{ config(materialized='table',
-alias='fact_orders_tbl1'
+alias='fact_orders_tbl2'
 ) }}
 
 with orders as (

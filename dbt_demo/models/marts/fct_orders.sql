@@ -11,7 +11,7 @@ customers as (
         c_nationkey   as nation_id,
         c_acctbal     as account_balance,
         c_mktsegment  as market_segment
-    TEMP_DB.TEMP_SCHEMA.TEMP_CUSTOMER
+    from TEMP_DB.TEMP_SCHEMA.TEMP_CUSTOMER
 )
 
 select

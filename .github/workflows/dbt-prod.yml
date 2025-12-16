@@ -69,33 +69,107 @@
 
 
 
-name: dbt-prod-run
+# name: dbt-prod-run
 
+# on:
+#   push:
+#     branches: [ main ]
+
+# permissions:
+#   contents: write   # required to commit manifest
+
+# jobs:
+#   dbt-prod:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v4
+
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.10"
+
+#       - name: Install dbt
+#         run: |
+#           pip install --upgrade pip
+#           pip install dbt-snowflake
+
+#       - name: Create profiles.yml (PROD)
+#         run: |
+#           mkdir -p ~/.dbt
+#           cat << EOF > ~/.dbt/profiles.yml
+#           dbt_demo:
+#             target: prod
+#             outputs:
+#               prod:
+#                 type: snowflake
+#                 account: ${{ secrets.SF_ACCOUNT }}
+#                 user: ${{ secrets.SF_USER }}
+#                 password: ${{ secrets.SF_PASSWORD }}
+#                 role: ${{ secrets.SF_ROLE }}
+#                 database: ${{ secrets.SF_DATABASE }}
+#                 warehouse: ${{ secrets.SF_WAREHOUSE }}
+#                 schema: ${{ secrets.SF_SCHEMA }}
+#                 threads: 8
+#           EOF
+
+#       - name: dbt deps
+#         run: dbt deps --project-dir dbt_demo
+
+#       - name: dbt run (PROD)
+#         run: dbt run --project-dir dbt_demo --target prod
+
+#       - name: dbt test (PROD)
+#         run: dbt test --project-dir dbt_demo --target prod
+
+#       - name: Generate dbt docs
+#         run: dbt docs generate --project-dir dbt_demo --target prod
+
+#       # ⭐ SAVE PROD STATE FOR SLIM CI
+#       - name: Save prod manifest
+#         run: |
+#           mkdir -p dbt_state
+#           cp dbt_demo/target/manifest.json dbt_state/manifest.json
+
+#       - name: Commit prod manifest
+#         run: |
+#           git config user.name "github-actions"
+#           git config user.email "actions@github.com"
+#           git add dbt_state/manifest.json
+#           git commit -m "Update prod dbt manifest" || echo "No manifest changes"
+#           git push
+
+
+
+
+
+name: dbt-prod-run
 on:
   push:
     branches: [ main ]
-
+    paths-ignore:
+      - 'dbt_state/manifest.json'
 permissions:
-  contents: write   # required to commit manifest
-
+  contents: write
 jobs:
   dbt-prod:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-
+      
       - name: Install dbt
         run: |
           pip install --upgrade pip
           pip install dbt-snowflake
-
+      
       - name: Create profiles.yml (PROD)
         run: |
           mkdir -p ~/.dbt
@@ -114,30 +188,37 @@ jobs:
                 schema: ${{ secrets.SF_SCHEMA }}
                 threads: 8
           EOF
-
+      
       - name: dbt deps
         run: dbt deps --project-dir dbt_demo
-
+      
       - name: dbt run (PROD)
         run: dbt run --project-dir dbt_demo --target prod
-
+      
       - name: dbt test (PROD)
         run: dbt test --project-dir dbt_demo --target prod
-
+      
       - name: Generate dbt docs
         run: dbt docs generate --project-dir dbt_demo --target prod
-
-      # ⭐ SAVE PROD STATE FOR SLIM CI
+      
       - name: Save prod manifest
         run: |
           mkdir -p dbt_state
           cp dbt_demo/target/manifest.json dbt_state/manifest.json
-
+      
       - name: Commit prod manifest
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+          git pull --rebase origin main
           git add dbt_state/manifest.json
-          git commit -m "Update prod dbt manifest" || echo "No manifest changes"
+          git commit -m "Update prod dbt manifest [skip ci]" || echo "No manifest changes"
           git push
-
+      
+      # 📚 SAVE DOCS (choose one option)
+      - name: Upload dbt docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: dbt_demo/target/
+          retention-days: 30

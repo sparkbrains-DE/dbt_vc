@@ -21,7 +21,7 @@ jobs:
       - name: Install dbt
         run: |
           pip install --upgrade pip
-          pip install dbt-snowflake dbt-utils
+          pip install dbt-snowflake
 
       # 4️⃣ Create profiles.yml (DEV)
       - name: Create profiles.yml

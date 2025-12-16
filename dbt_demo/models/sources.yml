@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: tpch
+    database: TEMP_DB
+    schema: TEMP_SCHEMA
+    description: "TPC-H SF1 source tables loaded into Snowflake"
+
+    tables:
+      - name: temp_customer
+        description: "Customers master data"
+        columns:
+          - name: c_custkey
+            description: "Primary key for customer"
+
+      - name: temp_orders
+        description: "Customer orders"
+        columns:
+          - name: o_orderkey
+            description: "Primary key for orders"
+          - name: o_custkey
+            description: "Foreign key to customer"
+
+      - name: temp_lineitem
+        description: "Line item details for each order"
+        columns:
+          - name: l_orderkey
+            description: "Foreign key to orders"
+
+      - name: temp_nation
+        description: "Nation reference data"
+
+      - name: temp_region
+        description: "Region reference data"
+
+      - name: temp_part
+        description: "Parts master data"
+
+      - name: temp_supplier
+        description: "Suppliers master data"
+
+      - name: temp_partsupp
+        description: "Part–supplier relationship"

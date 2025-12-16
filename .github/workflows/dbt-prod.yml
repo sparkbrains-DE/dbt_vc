@@ -131,7 +131,7 @@ jobs:
       - name: Save prod manifest
         run: |
           mkdir -p dbt_state
-          cp dbt_project/target/manifest.json dbt_state/prod_manifest.json
+          cp dbt_demo/target/manifest.json dbt_state/prod_manifest.json
 
       - name: Commit prod manifest
         run: |

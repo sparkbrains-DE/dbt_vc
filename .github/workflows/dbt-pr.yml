@@ -42,13 +42,13 @@ jobs:
           EOF
 
       - name: dbt deps
-        run: dbt deps --project-dir dbt_project
+        run: dbt deps --project-dir dbt_demo
 
       # ⭐ SLIM CI USING PROD MANIFEST FROM GIT
       - name: dbt slim run
         run: |
           dbt run \
-            --project-dir dbt_project \
+            --project-dir dbt_demo \
             --target dev \
             --state dbt_state \
             --select state:modified+
@@ -56,7 +56,7 @@ jobs:
       - name: dbt slim test
         run: |
           dbt test \
-            --project-dir dbt_project \
+            --project-dir dbt_demo \
             --target dev \
             --state dbt_state \
             --select state:modified+

@@ -26,11 +26,9 @@ jobs:
           pip install --upgrade pip
           pip install dbt-snowflake
 
-      # 4️⃣ Create profiles.yml (DO NOT COMMIT THIS FILE)
-      - name: Create dbt profiles.yml
+      - name: Create profiles.yml
         run: |
           mkdir -p ~/.dbt
-
           cat << EOF > ~/.dbt/profiles.yml
           my_dbt_project:
             target: prod

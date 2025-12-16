@@ -137,7 +137,7 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add dbt_state/prod_manifest.json
+          git add dbt_state/manifest.json
           git commit -m "Update prod dbt manifest" || echo "No manifest changes"
           git push
 

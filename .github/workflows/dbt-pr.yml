@@ -35,8 +35,8 @@ jobs:
                 user: ${{ secrets.SF_USER }}
                 password: ${{ secrets.SF_PASSWORD }}
                 role: ${{ secrets.SF_DEV_ROLE }}
-                database: ${{ secrets.SF_DEV_DATABASE }}
-                warehouse: ${{ secrets.SF_DEV_WAREHOUSE }}
+                database: ${{ secrets.SF_DATABASE }}
+                warehouse: ${{ secrets.SF_WAREHOUSE }}
                 schema: dev_${{ github.actor }}
                 threads: 4
           EOF

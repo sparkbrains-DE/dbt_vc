@@ -47,16 +47,16 @@ jobs:
 
       # 5️⃣ Validate dbt setup (IMPORTANT)
       - name: dbt debug
-        run: dbt debug --project-dir dbt_project
+        run: dbt debug --project-dir dbt_demo
 
       # 6️⃣ Install dbt packages
       - name: dbt deps
-        run: dbt deps --project-dir dbt_project
+        run: dbt deps --project-dir dbt_demo
 
       # 7️⃣ Run dbt models in PROD
       - name: dbt run (PROD)
-        run: dbt run --project-dir dbt_project --target prod
+        run: dbt run --project-dir dbt_demo --target prod
 
       # 8️⃣ Run dbt tests in PROD
       - name: dbt test (PROD)
-        run: dbt test --project-dir dbt_project --target prod
+        run: dbt test --project-dir dbt_demo --target prod

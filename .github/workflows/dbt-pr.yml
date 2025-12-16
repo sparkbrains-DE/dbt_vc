@@ -1,0 +1,73 @@
+name: dbt-pr-check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  dbt-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout code
+      - uses: actions/checkout@v4
+
+      # 2️⃣ Setup Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3️⃣ Install dbt
+      - name: Install dbt
+        run: |
+          pip install --upgrade pip
+          pip install dbt-snowflake
+
+      # 4️⃣ Create profiles.yml (DEV)
+      - name: Create profiles.yml (DEV)
+        run: |
+          mkdir -p ~/.dbt
+          cat << EOF > ~/.dbt/profiles.yml
+          dbt_demo:
+            target: dev
+            outputs:
+              dev:
+                type: snowflake
+                account: ${{ secrets.SF_ACCOUNT }}
+                user: ${{ secrets.SF_USER }}
+                password: ${{ secrets.SF_PASSWORD }}
+                role: ${{ secrets.SF_DEV_ROLE }}
+                database: ${{ secrets.SF_DEV_DATABASE }}
+                warehouse: ${{ secrets.SF_DEV_WAREHOUSE }}
+                schema: dev_${{ github.actor }}
+                threads: 4
+          EOF
+
+      # 5️⃣ Download prod state for Slim CI
+      - name: Download dbt state
+        uses: actions/download-artifact@v4
+        with:
+          name: dbt-state
+          path: dbt_state
+
+      # 6️⃣ Install packages
+      - name: dbt deps
+        run: dbt deps --project-dir dbt_demo
+
+      # 7️⃣ Slim CI run (only modified models)
+      - name: dbt slim run
+        run: |
+          dbt run \
+            --project-dir dbt_demo \
+            --target dev \
+            --state dbt_state \
+            --select state:modified+
+
+      # 8️⃣ Slim CI tests
+      - name: dbt slim test
+        run: |
+          dbt test \
+            --project-dir dbt_demo \
+            --target dev \
+            --state dbt_state \
+            --select state:modified+

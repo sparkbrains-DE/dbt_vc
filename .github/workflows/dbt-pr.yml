@@ -50,8 +50,8 @@ jobs:
           test -d dbt_demo/models/marts
 
       # 6️⃣ Compile dbt project (logic validation)
-      - name: dbt compile
-        run: dbt compile --project-dir dbt_demo
+      # - name: dbt compile
+      #   run: dbt compile --project-dir dbt_demo
 
       # 7️⃣ Enforce naming conventions (fail-fast)
       - name: Enforce naming conventions

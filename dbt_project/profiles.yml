@@ -1,0 +1,9 @@
+dbt_project:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      role: ACCOUNTADMIN
+      warehouse: COMPUTE_WH
+      database: TEMP_DB
+      schema: TEMP_SCHEMA

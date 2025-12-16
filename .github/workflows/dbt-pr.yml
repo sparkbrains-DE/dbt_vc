@@ -46,8 +46,8 @@ jobs:
       # 5️⃣ Enforce folder structure
       - name: Validate folder structure
         run: |
-          test -d models/staging
-          test -d models/marts
+          test -d dbt_demo/models/staging
+          test -d dbt_demo/models/marts
 
       # 6️⃣ Compile dbt project (logic validation)
       - name: dbt compile

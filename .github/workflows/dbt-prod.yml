@@ -1,0 +1,55 @@
+name: dbt-prod-run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  dbt-prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dbt
+        run: |
+          pip install --upgrade pip
+          pip install dbt-snowflake
+
+      - name: Create profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat << EOF > ~/.dbt/profiles.yml
+          my_dbt_project:
+            target: prod
+            outputs:
+              prod:
+                type: snowflake
+                account: ${{ secrets.SF_ACCOUNT }}
+                user: ${{ secrets.SF_USER }}
+                password: ${{ secrets.SF_PASSWORD }}
+                role: ${{ secrets.SF_ROLE }}
+                database: ${{ secrets.SF_DATABASE }}
+                warehouse: ${{ secrets.SF_WAREHOUSE }}
+                schema: ${{ secrets.SF_SCHEMA }}
+                threads: 8
+          EOF
+
+      - name: dbt debug
+        run: dbt debug
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt run (PROD)
+        run: dbt run --target prod
+
+      - name: dbt test (PROD)
+        run: dbt test --target prod

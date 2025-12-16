@@ -6,26 +6,31 @@ on:
       - main
 
 jobs:
-  dbt-prod:
+  run-dbt-prod:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      # 3️⃣ Install dbt Snowflake adapter
       - name: Install dbt
         run: |
           pip install --upgrade pip
           pip install dbt-snowflake
 
-      - name: Create profiles.yml
+      # 4️⃣ Create profiles.yml (DO NOT COMMIT THIS FILE)
+      - name: Create dbt profiles.yml
         run: |
           mkdir -p ~/.dbt
+
           cat << EOF > ~/.dbt/profiles.yml
           my_dbt_project:
             target: prod
@@ -42,14 +47,18 @@ jobs:
                 threads: 8
           EOF
 
+      # 5️⃣ Validate dbt setup (IMPORTANT)
       - name: dbt debug
-        run: dbt debug
+        run: dbt debug --project-dir dbt_project
 
+      # 6️⃣ Install dbt packages
       - name: dbt deps
-        run: dbt deps
+        run: dbt deps --project-dir dbt_project
 
+      # 7️⃣ Run dbt models in PROD
       - name: dbt run (PROD)
-        run: dbt run --target prod
+        run: dbt run --project-dir dbt_project --target prod
 
+      # 8️⃣ Run dbt tests in PROD
       - name: dbt test (PROD)
-        run: dbt test --target prod
+        run: dbt test --project-dir dbt_project --target prod

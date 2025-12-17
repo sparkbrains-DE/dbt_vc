@@ -57,12 +57,12 @@ jobs:
       # 6️⃣ Validate metadata completeness
       - name: Validate dbt metadata
         run: |
-          python .github/scripts/validate_metadata.py --project-dir dbt_demo
+          python .github/workflows/scripts/validate_metadata.py --project-dir dbt_demo
 
       # 7️⃣ Check for schema changes
       - name: Check schema changes
         run: |
-          python .github/scripts/check_schema_changes.py --project-dir dbt_demo
+          python .github/workflows/scripts/check_schema_changes.py --project-dir dbt_demo
 
       # 8️⃣ Run dbt compile (syntax check)
       - name: dbt compile

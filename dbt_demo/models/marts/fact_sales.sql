@@ -1,4 +1,5 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+alias='fact_sales') }}
 
 with orders as (
     select * from {{ ref('stg_tpch_orders') }}

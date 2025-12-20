@@ -154,7 +154,6 @@
 
 
 # =========== V3 WITH SLIM CI ========================
-
 name: dbt-prod-run-slimci
 on:
   push:
@@ -216,19 +215,19 @@ jobs:
         id: download_manifest
         continue-on-error: true
         run: |
-          # Try to download manifest from gh-pages branch
-          mkdir -p dbt_demo/target
+          # Create directory for previous state
+          mkdir -p dbt_demo/state
           
           # Check if gh-pages branch exists
           if git ls-remote --exit-code --heads origin gh-pages; then
             echo "gh-pages branch exists, downloading manifest..."
             
-            # Download manifest.json from gh-pages
-            curl -sSL -o dbt_demo/target/manifest_previous.json \
+            # Download manifest.json from gh-pages to state directory
+            curl -sSL -o dbt_demo/state/manifest.json \
               "https://raw.githubusercontent.com/${{ github.repository }}/gh-pages/manifest.json" \
               || echo "Failed to download manifest"
             
-            if [ -f dbt_demo/target/manifest_previous.json ]; then
+            if [ -f dbt_demo/state/manifest.json ]; then
               echo "manifest_exists=true" >> $GITHUB_OUTPUT
               echo "✅ Previous manifest downloaded successfully"
             else
@@ -250,8 +249,7 @@ jobs:
               --target prod \
               --select state:modified+ \
               --defer \
-              --state dbt_demo/target \
-              --state-manifest manifest_previous.json
+              --state dbt_demo/state
           else
             echo "🔄 Running full dbt run (no previous state available)"
             dbt run --project-dir dbt_demo --target prod
@@ -267,8 +265,7 @@ jobs:
               --target prod \
               --select state:modified+ \
               --defer \
-              --state dbt_demo/target \
-              --state-manifest manifest_previous.json
+              --state dbt_demo/state
           else
             echo "🔄 Running full dbt test (no previous state available)"
             dbt test --project-dir dbt_demo --target prod

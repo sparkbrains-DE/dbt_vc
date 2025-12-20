@@ -62,33 +62,132 @@
 #         run: dbt test --project-dir dbt_demo --target prod
 
 
+# ================ V2 =================
+
+# name: dbt-prod-run
+# on:
+#   push:
+#     branches:
+#       - main
+# jobs:
+#   run-dbt-prod:
+#     runs-on: ubuntu-latest
+#     steps:
+#       # 1️⃣ Checkout repository
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+      
+#       # 2️⃣ Setup Python
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.10"
+      
+#       # 3️⃣ Install dbt Snowflake adapter
+#       - name: Install dbt
+#         run: |
+#           pip install --upgrade pip
+#           pip install dbt-snowflake
+      
+#       # 4️⃣ Create profiles.yml
+#       - name: Create profiles.yml
+#         run: |
+#           mkdir -p ~/.dbt
+#           cat << EOF > ~/.dbt/profiles.yml
+#           dbt_demo:
+#             target: prod
+#             outputs:
+#               prod:
+#                 type: snowflake
+#                 account: ${{ secrets.SF_ACCOUNT }}
+#                 user: ${{ secrets.SF_USER }}
+#                 password: ${{ secrets.SF_PASSWORD }}
+#                 role: ${{ secrets.SF_ROLE }}
+#                 database: ${{ secrets.SF_DATABASE }}
+#                 warehouse: ${{ secrets.SF_WAREHOUSE }}
+#                 schema: ${{ secrets.SF_SCHEMA }}
+#                 threads: 8
+#           EOF
+      
+#       # 5️⃣ Validate dbt setup
+#       - name: dbt debug
+#         run: dbt debug --project-dir dbt_demo
+      
+#       # 6️⃣ Install dbt packages
+#       - name: dbt deps
+#         run: dbt deps --project-dir dbt_demo
+      
+#       # 7️⃣ Run dbt models in PROD
+#       - name: dbt run (PROD)
+#         run: dbt run --project-dir dbt_demo --target prod
+      
+#       # 8️⃣ Run dbt tests in PROD
+#       - name: dbt test (PROD)
+#         run: dbt test --project-dir dbt_demo --target prod
+      
+#       # 9️⃣ Generate dbt documentation
+#       - name: Generate dbt docs
+#         run: |
+#           dbt docs generate --project-dir dbt_demo --target prod
+      
+#       # 🔟 Copy generated docs to publishable directory
+#       - name: Prepare docs for publishing
+#         run: |
+#           mkdir -p docs_site
+#           cp dbt_demo/target/index.html docs_site/
+#           cp dbt_demo/target/catalog.json docs_site/
+#           cp dbt_demo/target/manifest.json docs_site/
+#           cp dbt_demo/target/run_results.json docs_site/ || true
+      
+#       # 1️⃣1️⃣ Deploy to GitHub Pages
+#       - name: Deploy to GitHub Pages
+#         uses: peaceiris/actions-gh-pages@v3
+#         with:
+#           github_token: ${{ secrets.GH_TOKEN }}
+#           publish_dir: ./docs_site
+#           publish_branch: gh-pages
+#           keep_files: false
 
 
-name: dbt-prod-run
+
+
+
+
+# =========== V3 WITH SLIM CI ========================
+
+
+name: dbt-prod-run-slimci
+
 on:
-  push:
+  pull_request:
     branches:
       - main
+    types:
+      - closed
+
 jobs:
   run-dbt-prod:
+    # ✅ Run only when PR is merged
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+
     steps:
       # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      
+
       # 3️⃣ Install dbt Snowflake adapter
       - name: Install dbt
         run: |
           pip install --upgrade pip
           pip install dbt-snowflake
-      
+
       # 4️⃣ Create profiles.yml
       - name: Create profiles.yml
         run: |
@@ -108,29 +207,43 @@ jobs:
                 schema: ${{ secrets.SF_SCHEMA }}
                 threads: 8
           EOF
-      
-      # 5️⃣ Validate dbt setup
+
+      # 5️⃣ dbt debug
       - name: dbt debug
         run: dbt debug --project-dir dbt_demo
-      
-      # 6️⃣ Install dbt packages
+
+      # 6️⃣ dbt deps
       - name: dbt deps
         run: dbt deps --project-dir dbt_demo
-      
-      # 7️⃣ Run dbt models in PROD
-      - name: dbt run (PROD)
-        run: dbt run --project-dir dbt_demo --target prod
-      
-      # 8️⃣ Run dbt tests in PROD
-      - name: dbt test (PROD)
-        run: dbt test --project-dir dbt_demo --target prod
-      
-      # 9️⃣ Generate dbt documentation
-      - name: Generate dbt docs
+
+      # 7️⃣ Download previous dbt state (Slim CI)
+      - name: Download previous dbt state
+        uses: actions/download-artifact@v4
+        with:
+          name: dbt-state
+          path: dbt_state
+        continue-on-error: true
+
+      # 8️⃣ dbt build (Slim CI)
+      - name: dbt build (PROD - Slim CI)
         run: |
-          dbt docs generate --project-dir dbt_demo --target prod
-      
-      # 🔟 Copy generated docs to publishable directory
+          if [ -f dbt_state/manifest.json ]; then
+            echo "🔁 Running Slim CI (state:modified+)"
+            dbt build \
+              --project-dir dbt_demo \
+              --target prod \
+              --state dbt_state \
+              --select state:modified+
+          else
+            echo "⚠️ No previous state found – running full dbt build"
+            dbt build --project-dir dbt_demo --target prod
+          fi
+
+      # 9️⃣ Generate dbt docs
+      - name: Generate dbt docs
+        run: dbt docs generate --project-dir dbt_demo --target prod
+
+      # 🔟 Prepare docs for GitHub Pages
       - name: Prepare docs for publishing
         run: |
           mkdir -p docs_site
@@ -138,8 +251,15 @@ jobs:
           cp dbt_demo/target/catalog.json docs_site/
           cp dbt_demo/target/manifest.json docs_site/
           cp dbt_demo/target/run_results.json docs_site/ || true
-      
-      # 1️⃣1️⃣ Deploy to GitHub Pages
+
+      # 1️⃣1️⃣ Save dbt state for next Slim CI run
+      - name: Save dbt state
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-state
+          path: dbt_demo/target/manifest.json
+
+      # 1️⃣2️⃣ Deploy dbt docs to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -147,3 +267,4 @@ jobs:
           publish_dir: ./docs_site
           publish_branch: gh-pages
           keep_files: false
+

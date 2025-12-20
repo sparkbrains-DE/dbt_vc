@@ -2,7 +2,7 @@
             enabled=true,
             database="snowflake_learning_db",
             schema="DIMENSIONS",
-            alias="cust_dim",
+            alias="cust_dim_test",
             post_hook="GRANT SELECT ON {{ this }} TO ROLE analyst_tem"
             
 

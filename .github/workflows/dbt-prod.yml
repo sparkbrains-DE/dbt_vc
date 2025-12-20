@@ -160,7 +160,10 @@ on:
   push:
     branches:
       - main
-
+      
+permissions:
+  contents: write
+  
 jobs:
   dbt-prod:
     runs-on: ubuntu-latest

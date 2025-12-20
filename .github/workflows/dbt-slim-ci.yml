@@ -1,0 +1,76 @@
+name: dbt-slim-ci
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dbt-slim:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 3️⃣ Install dbt Snowflake
+      - name: Install dbt
+        run: |
+          pip install --upgrade pip
+          pip install dbt-snowflake==1.9.2
+
+      # 4️⃣ Create profiles.yml
+      - name: Create profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat << EOF > ~/.dbt/profiles.yml
+          dbt_demo:
+            target: prod
+            outputs:
+              prod:
+                type: snowflake
+                account: "${{ secrets.SF_ACCOUNT }}"
+                user: "${{ secrets.SF_USER }}"
+                password: "${{ secrets.SF_PASSWORD }}"
+                role: "${{ secrets.SF_ROLE }}"
+                database: "${{ secrets.SF_DATABASE }}"
+                warehouse: "${{ secrets.SF_WAREHOUSE }}"
+                schema: "${{ secrets.SF_SCHEMA }}"
+                threads: 1
+          EOF
+
+      # 5️⃣ dbt deps
+      - name: dbt deps
+        run: dbt deps --project-dir dbt_demo
+
+      # 6️⃣ Download previous dbt state (if exists)
+      - name: Download dbt state
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: dbt-state
+          path: dbt_state
+
+      # 7️⃣ Slim CI with fallback
+      - name: dbt build (Slim CI)
+        run: |
+          if [ -f dbt_state/manifest.json ]; then
+            echo "🚀 Running Slim CI (state:modified+)"
+            dbt build \
+              --project-dir dbt_demo \
+              --target prod \
+              --state dbt_state \
+              --select state:modified+
+          else
+            echo "⚠️ No previous state found – running full build"
+            dbt build \
+              --project-dir dbt_demo \
+              --target prod
+          fi

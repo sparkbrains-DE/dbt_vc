@@ -218,32 +218,56 @@ jobs:
           # Create directory for previous state
           mkdir -p dbt_demo/state
           
-          # Check if gh-pages branch exists
-          if git ls-remote --exit-code --heads origin gh-pages; then
-            echo "gh-pages branch exists, downloading manifest..."
-            
-            # Download manifest.json from gh-pages to state directory
-            curl -sSL -o dbt_demo/state/manifest.json \
-              "https://raw.githubusercontent.com/${{ github.repository }}/gh-pages/manifest.json" \
-              || echo "Failed to download manifest"
-            
-            if [ -f dbt_demo/state/manifest.json ]; then
-              echo "manifest_exists=true" >> $GITHUB_OUTPUT
-              echo "✅ Previous manifest downloaded successfully"
+          echo "🔍 Attempting to download previous manifest from GitHub Pages..."
+          
+          # Try to download manifest from gh-pages
+          HTTP_CODE=$(curl -sSL -w "%{http_code}" -o dbt_demo/state/manifest.json \
+            "https://raw.githubusercontent.com/${{ github.repository }}/gh-pages/manifest.json" \
+            2>/dev/null || echo "000")
+          
+          echo "HTTP Response Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            # Check if file exists and has content
+            if [ -f dbt_demo/state/manifest.json ] && [ -s dbt_demo/state/manifest.json ]; then
+              # Validate it's valid JSON
+              if jq empty dbt_demo/state/manifest.json 2>/dev/null; then
+                echo "manifest_exists=true" >> $GITHUB_OUTPUT
+                echo "✅ Valid manifest.json downloaded successfully"
+                echo "📍 Manifest location: dbt_demo/state/manifest.json"
+                ls -lh dbt_demo/state/manifest.json
+              else
+                echo "manifest_exists=false" >> $GITHUB_OUTPUT
+                echo "❌ Downloaded file is not valid JSON"
+                rm -f dbt_demo/state/manifest.json
+              fi
             else
               echo "manifest_exists=false" >> $GITHUB_OUTPUT
-              echo "⚠️ No previous manifest found - will run full refresh"
+              echo "❌ Manifest file is empty or doesn't exist"
             fi
+          elif [ "$HTTP_CODE" -eq 404 ]; then
+            echo "manifest_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No previous manifest found (404) - this is expected for first deployment"
           else
             echo "manifest_exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️ gh-pages branch doesn't exist yet - will run full refresh"
+            echo "⚠️ Failed to download manifest (HTTP $HTTP_CODE)"
           fi
+          
+          # Show what we have in the state directory
+          echo ""
+          echo "📁 Contents of state directory:"
+          ls -la dbt_demo/state/ || echo "State directory is empty"
       
       # 8️⃣ Run dbt models in PROD with SlimCI optimization
       - name: dbt run (PROD with SlimCI)
         run: |
-          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ]; then
+          # Double-check manifest exists before using state comparison
+          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ] && [ -f dbt_demo/state/manifest.json ]; then
             echo "🚀 Running dbt with SlimCI (state comparison enabled)"
+            echo "   State directory: dbt_demo/state"
+            echo "   Manifest found: $(ls -lh dbt_demo/state/manifest.json)"
+            echo ""
+            
             dbt run \
               --project-dir dbt_demo \
               --target prod \
@@ -251,15 +275,25 @@ jobs:
               --defer \
               --state dbt_demo/state
           else
-            echo "🔄 Running full dbt run (no previous state available)"
+            if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ]; then
+              echo "⚠️ Manifest flag was set but file not found - running full build"
+            else
+              echo "ℹ️ No previous manifest available - running full build"
+            fi
+            echo "🔄 Running full dbt run (all models)"
+            echo ""
+            
             dbt run --project-dir dbt_demo --target prod
           fi
       
       # 9️⃣ Run dbt tests in PROD with SlimCI optimization
       - name: dbt test (PROD with SlimCI)
         run: |
-          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ]; then
+          # Double-check manifest exists before using state comparison
+          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ] && [ -f dbt_demo/state/manifest.json ]; then
             echo "🧪 Running dbt tests with SlimCI (state comparison enabled)"
+            echo ""
+            
             dbt test \
               --project-dir dbt_demo \
               --target prod \
@@ -267,7 +301,9 @@ jobs:
               --defer \
               --state dbt_demo/state
           else
-            echo "🔄 Running full dbt test (no previous state available)"
+            echo "🔄 Running full dbt test (all tests)"
+            echo ""
+            
             dbt test --project-dir dbt_demo --target prod
           fi
       

@@ -302,11 +302,11 @@ jobs:
       # ⭐ DEPLOY TO SNOWFLAKE DBT PROJECT OBJECT (dbt_demo in temp_db.temp_schema)
       - name: Deploy dbt Project to Snowflake
         run: |
-          snow dbt deploy \
-            --connection demo_prod \
-            --default-target prod \
-            --project-dir dbt_demo \
-            --force \
+            snow dbt deploy dbt_demo \
+              --source dbt_demo \
+              --profiles-dir ~/.dbt \
+              --default-target prod \
+              --force
 
       # ⭐ SAVE MANIFEST FOR SLIM CI (optional)
       - name: Save manifest for Slim CI

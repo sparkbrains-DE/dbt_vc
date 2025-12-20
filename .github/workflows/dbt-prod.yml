@@ -272,6 +272,10 @@ jobs:
           database = "temp_db"
           warehouse = "${{ secrets.SF_WAREHOUSE }}"
           EOF
+
+          chmod 600 ~/.snowflake/config.toml
+
+          
           # dbt profiles.yml - deploys to temp_db.public
           cat << EOF > ~/.dbt/profiles.yml
           dbt_demo:

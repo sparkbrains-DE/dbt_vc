@@ -1,4 +1,5 @@
-{{ config(materialized='view') }}
+{{ config(materialized='table',
+alais="customer_revenue") }}
 
 with sales as (
     select * from {{ ref('fact_sales') }}

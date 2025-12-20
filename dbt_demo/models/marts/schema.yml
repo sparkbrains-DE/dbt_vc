@@ -1,21 +1,59 @@
+# version: 2
+
+# models:
+#   - name: fact_sales
+#     description: "A starter dbt model"
+#     columns:
+#       - name: order_status
+#         description: "order status test"
+#         tests:
+#           - accepted_values:
+#               values: ['P','F', 'O']
+#       - name: gross_price
+#         description: "gross price test"
+#         tests:
+#           - not_null
+#           # - relationships:
+#           #     to: ref('dim_customers')
+#           #     field: customer_id
+
+# sources:
+#   - name: snowflake
+#     database: SNOWFLAKE_LEARNING_DB
+#     schema: PUBLIC
+#     tables:
+#       - name: customer
+#         columns:
+#           - name: c_cust_id
+#             tests:
+#               - not_null
+#               - unique
+
+
+
+
+
 version: 2
 
 models:
   - name: fact_sales
     description: "A starter dbt model"
     columns:
-      - name: order_status
-        description: "order status test"
-        tests:
-          - accepted_values:
-              values: ['P','F', 'O']
+      # - name: order_status
+      #   description: "order status test"
+      #   tests:
+      #     - accepted_values:
+      #         arguments:
+      #           values: ['P', 'F', 'O']
+
       - name: gross_price
         description: "gross price test"
         tests:
           - not_null
           # - relationships:
-          #     to: ref('dim_customers')
-          #     field: customer_id
+          #     arguments:
+          #       to: ref('dim_customers')
+          #       field: customer_id
 
 sources:
   - name: snowflake
@@ -28,8 +66,3 @@ sources:
             tests:
               - not_null
               - unique
-
-
-
-
-

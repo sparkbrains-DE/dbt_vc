@@ -155,152 +155,35 @@
 
 # =========== V3 WITH SLIM CI ========================
 
-
-# name: dbt-prod-run-slimci
-
-# on:
-#   pull_request:
-#     branches:
-#       - main
-#     types:
-#       - closed
-
-# jobs:
-#   run-dbt-prod:
-#     # ✅ Run only when PR is merged
-#     if: github.event.pull_request.merged == true
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       # 1️⃣ Checkout repository
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       # 2️⃣ Setup Python
-#       - name: Setup Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: "3.10"
-
-#       # 3️⃣ Install dbt Snowflake adapter
-#       - name: Install dbt
-#         run: |
-#           pip install --upgrade pip
-#           pip install dbt-snowflake
-
-#       # 4️⃣ Create profiles.yml
-#       - name: Create profiles.yml
-#         run: |
-#           mkdir -p ~/.dbt
-#           cat << EOF > ~/.dbt/profiles.yml
-#           dbt_demo:
-#             target: prod
-#             outputs:
-#               prod:
-#                 type: snowflake
-#                 account: ${{ secrets.SF_ACCOUNT }}
-#                 user: ${{ secrets.SF_USER }}
-#                 password: ${{ secrets.SF_PASSWORD }}
-#                 role: ${{ secrets.SF_ROLE }}
-#                 database: ${{ secrets.SF_DATABASE }}
-#                 warehouse: ${{ secrets.SF_WAREHOUSE }}
-#                 schema: ${{ secrets.SF_SCHEMA }}
-#                 threads: 8
-#           EOF
-
-#       # 5️⃣ dbt debug
-#       - name: dbt debug
-#         run: dbt debug --project-dir dbt_demo
-
-#       # 6️⃣ dbt deps
-#       - name: dbt deps
-#         run: dbt deps --project-dir dbt_demo
-
-#       # 7️⃣ Download previous dbt state (Slim CI)
-#       - name: Download previous dbt state
-#         uses: actions/download-artifact@v4
-#         with:
-#           name: dbt-state
-#           path: dbt_state
-#         continue-on-error: true
-
-#       # 8️⃣ dbt build (Slim CI)
-#       - name: dbt build (PROD - Slim CI)
-#         run: |
-#           if [ -f dbt_state/manifest.json ]; then
-#             echo "🔁 Running Slim CI (state:modified+)"
-#             dbt build \
-#               --project-dir dbt_demo \
-#               --target prod \
-#               --state dbt_state \
-#               --select state:modified+
-#           else
-#             echo "⚠️ No previous state found – running full dbt build"
-#             dbt build --project-dir dbt_demo --target prod
-#           fi
-
-#       # 9️⃣ Generate dbt docs
-#       - name: Generate dbt docs
-#         run: dbt docs generate --project-dir dbt_demo --target prod
-
-#       # 🔟 Prepare docs for GitHub Pages
-#       - name: Prepare docs for publishing
-#         run: |
-#           mkdir -p docs_site
-#           cp dbt_demo/target/index.html docs_site/
-#           cp dbt_demo/target/catalog.json docs_site/
-#           cp dbt_demo/target/manifest.json docs_site/
-#           cp dbt_demo/target/run_results.json docs_site/ || true
-
-#       # 1️⃣1️⃣ Save dbt state for next Slim CI run
-#       - name: Save dbt state
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: dbt-state
-#           path: dbt_demo/target/manifest.json
-
-#       # 1️⃣2️⃣ Deploy dbt docs to GitHub Pages
-#       - name: Deploy to GitHub Pages
-#         uses: peaceiris/actions-gh-pages@v3
-#         with:
-#           github_token: ${{ secrets.GH_TOKEN }}
-#           publish_dir: ./docs_site
-#           publish_branch: gh-pages
-#           keep_files: false
-
-
-
-
-
-name: dbt-prod-build
-
+name: dbt-prod-run-slimci
 on:
   push:
     branches:
       - main
 
 jobs:
-  dbt-prod:
+  run-dbt-prod:
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Checkout code
-      - name: Checkout repository
+      # 1️⃣ Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0  # Fetch full history for better comparison
+      
       # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-
-      # 3️⃣ Install dbt Snowflake
+      
+      # 3️⃣ Install dbt Snowflake adapter
       - name: Install dbt
         run: |
           pip install --upgrade pip
-          pip install dbt-snowflake==1.9.2
-
-      # 4️⃣ Create profiles.yml (Snowflake)
+          pip install dbt-snowflake
+      
+      # 4️⃣ Create profiles.yml
       - name: Create profiles.yml
         run: |
           mkdir -p ~/.dbt
@@ -310,31 +193,125 @@ jobs:
             outputs:
               prod:
                 type: snowflake
-                account: "${{ secrets.SF_ACCOUNT }}"
-                user: "${{ secrets.SF_USER }}"
-                password: "${{ secrets.SF_PASSWORD }}"
-                role: "${{ secrets.SF_ROLE }}"
-                database: "${{ secrets.SF_DATABASE }}"
-                warehouse: "${{ secrets.SF_WAREHOUSE }}"
-                schema: "${{ secrets.SF_SCHEMA }}"
-                threads: 1
+                account: ${{ secrets.SF_ACCOUNT }}
+                user: ${{ secrets.SF_USER }}
+                password: ${{ secrets.SF_PASSWORD }}
+                role: ${{ secrets.SF_ROLE }}
+                database: ${{ secrets.SF_DATABASE }}
+                warehouse: ${{ secrets.SF_WAREHOUSE }}
+                schema: ${{ secrets.SF_SCHEMA }}
+                threads: 8
           EOF
-
-      # 5️⃣ Install dbt deps
+      
+      # 5️⃣ Validate dbt setup
+      - name: dbt debug
+        run: dbt debug --project-dir dbt_demo
+      
+      # 6️⃣ Install dbt packages
       - name: dbt deps
         run: dbt deps --project-dir dbt_demo
-
-      # 6️⃣ FULL PROD BUILD
-      - name: dbt build (FULL)
+      
+      # 7️⃣ Download previous manifest.json for comparison (SlimCI)
+      - name: Download previous manifest
+        id: download_manifest
+        continue-on-error: true
         run: |
-          dbt build \
-            --project-dir dbt_demo \
-            --target prod
-
-      # 7️⃣ Upload manifest.json for Slim CI
-      - name: Upload dbt state
-        uses: actions/upload-artifact@v4
+          # Try to download manifest from gh-pages branch
+          mkdir -p dbt_demo/target
+          
+          # Check if gh-pages branch exists
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "gh-pages branch exists, downloading manifest..."
+            
+            # Download manifest.json from gh-pages
+            curl -sSL -o dbt_demo/target/manifest_previous.json \
+              "https://raw.githubusercontent.com/${{ github.repository }}/gh-pages/manifest.json" \
+              || echo "Failed to download manifest"
+            
+            if [ -f dbt_demo/target/manifest_previous.json ]; then
+              echo "manifest_exists=true" >> $GITHUB_OUTPUT
+              echo "✅ Previous manifest downloaded successfully"
+            else
+              echo "manifest_exists=false" >> $GITHUB_OUTPUT
+              echo "⚠️ No previous manifest found - will run full refresh"
+            fi
+          else
+            echo "manifest_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ gh-pages branch doesn't exist yet - will run full refresh"
+          fi
+      
+      # 8️⃣ Run dbt models in PROD with SlimCI optimization
+      - name: dbt run (PROD with SlimCI)
+        run: |
+          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ]; then
+            echo "🚀 Running dbt with SlimCI (state comparison enabled)"
+            dbt run \
+              --project-dir dbt_demo \
+              --target prod \
+              --select state:modified+ \
+              --defer \
+              --state dbt_demo/target \
+              --state-manifest manifest_previous.json
+          else
+            echo "🔄 Running full dbt run (no previous state available)"
+            dbt run --project-dir dbt_demo --target prod
+          fi
+      
+      # 9️⃣ Run dbt tests in PROD with SlimCI optimization
+      - name: dbt test (PROD with SlimCI)
+        run: |
+          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ]; then
+            echo "🧪 Running dbt tests with SlimCI (state comparison enabled)"
+            dbt test \
+              --project-dir dbt_demo \
+              --target prod \
+              --select state:modified+ \
+              --defer \
+              --state dbt_demo/target \
+              --state-manifest manifest_previous.json
+          else
+            echo "🔄 Running full dbt test (no previous state available)"
+            dbt test --project-dir dbt_demo --target prod
+          fi
+      
+      # 🔟 Generate dbt documentation
+      - name: Generate dbt docs
+        run: |
+          dbt docs generate --project-dir dbt_demo --target prod
+      
+      # 1️⃣1️⃣ Copy generated docs to publishable directory
+      - name: Prepare docs for publishing
+        run: |
+          mkdir -p docs_site
+          cp dbt_demo/target/index.html docs_site/
+          cp dbt_demo/target/catalog.json docs_site/
+          cp dbt_demo/target/manifest.json docs_site/
+          cp dbt_demo/target/run_results.json docs_site/ || true
+          
+          echo "📦 Documentation files prepared for publishing"
+      
+      # 1️⃣2️⃣ Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: dbt-state
-          path: dbt_demo/target/manifest.json
-
+          github_token: ${{ secrets.GH_TOKEN }}
+          publish_dir: ./docs_site
+          publish_branch: gh-pages
+          keep_files: false
+          commit_message: "Deploy dbt docs and manifest [skip ci]"
+      
+      # 1️⃣3️⃣ Summary
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "## 📊 dbt Production Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.download_manifest.outputs.manifest_exists }}" == "true" ]; then
+            echo "✅ **SlimCI Enabled**: Only modified models and their dependents were run" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔄 **Full Run**: All models were run (first deployment or no previous manifest)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📚 [View dbt Documentation](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY

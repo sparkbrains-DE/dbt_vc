@@ -303,11 +303,11 @@ jobs:
       - name: Deploy dbt Project to Snowflake
         run: |
           snow dbt deploy \
-            --connection-name demo_prod \
+            --connection demo_prod \
             --target prod \
-            --project-name dbt_demo \
+            --project-dir dbt_demo \
             --force \
-            --project-dir dbt_demo
+            dbt_demo
 
       # ⭐ SAVE MANIFEST FOR SLIM CI (optional)
       - name: Save manifest for Slim CI

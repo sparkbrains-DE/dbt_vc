@@ -7,7 +7,6 @@
             
 
 ) }}
-
 with customer as (
     select
         c_custkey     as customer_id,

@@ -304,10 +304,9 @@ jobs:
         run: |
           snow dbt deploy \
             --connection demo_prod \
-            --target prod \
+            --default-target prod \
             --project-dir dbt_demo \
             --force \
-            dbt_demo
 
       # ⭐ SAVE MANIFEST FOR SLIM CI (optional)
       - name: Save manifest for Slim CI

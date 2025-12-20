@@ -300,6 +300,7 @@ jobs:
 
       - name: Deploy dbt Project to Snowflake
         run: |
+          cd dbt_demo
           snow dbt deploy dbt_demo \
             --connection demo_prod \
             --source dbt_demo \

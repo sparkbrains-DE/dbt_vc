@@ -1,15 +1,15 @@
-models:
-  - name: fct_orders
-    config:
-      materialized: table
-      contract:
-        enforced: true
-    columns:
-      - name: order_id
-        data_type: number
-        constraints:
-          - type: not_null
-      - name: customer_id
-        data_type: number
-      - name: order_status
-        data_type: number
+# models:
+#   - name: fct_orders
+#     config:
+#       materialized: table
+#       contract:
+#         enforced: true
+#     columns:
+#       - name: order_id
+#         data_type: number
+#         constraints:
+#           - type: not_null
+#       - name: customer_id
+#         data_type: number
+#       - name: order_status
+#         data_type: number

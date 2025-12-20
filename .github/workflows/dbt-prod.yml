@@ -320,3 +320,27 @@ jobs:
           git add dbt_state/manifest.json
           git commit -m "Update dbt Slim CI state" || echo "No changes"
           git push
+
+
+            # 9️⃣ Generate dbt documentation
+      - name: Generate dbt docs
+        run: |
+          dbt docs generate --project-dir dbt_demo --target prod
+      
+      # 🔟 Copy generated docs to publishable directory
+      - name: Prepare docs for publishing
+        run: |
+          mkdir -p docs_site
+          cp dbt_demo/target/index.html docs_site/
+          cp dbt_demo/target/catalog.json docs_site/
+          cp dbt_demo/target/manifest.json docs_site/
+          cp dbt_demo/target/run_results.json docs_site/ || true
+      
+      # 1️⃣1️⃣ Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          publish_dir: ./docs_site
+          publish_branch: gh-pages
+          keep_files: false

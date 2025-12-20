@@ -44,7 +44,7 @@ jobs:
 
       - name: dbt deps
         run: dbt deps --project-dir dbt_demo
-
+      
       - name: dbt build (Slim CI)
         run: |
           if [ -f dbt_state/manifest.json ]; then
@@ -52,7 +52,7 @@ jobs:
             dbt build \
               --project-dir dbt_demo \
               --target prod \
-              --state dbt_state \
+              --state ../dbt_state \
               --select state:modified+
           else
             echo "⚠️ No state found – running full build"

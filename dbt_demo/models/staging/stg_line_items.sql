@@ -1,4 +1,5 @@
-{{ config(materialized='view') }}
+{{ config(materialized='view',
+alias='stg_line_items') }}
 
 select
     l_orderkey     as order_id,

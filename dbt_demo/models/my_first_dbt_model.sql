@@ -1,4 +1,9 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+enabled=true,
+            database="snowflake_learning_db",
+            schema="DIMENSIONS",
+            alias="temp"
+) }}
 
   with source_data as (
       select 1 as id

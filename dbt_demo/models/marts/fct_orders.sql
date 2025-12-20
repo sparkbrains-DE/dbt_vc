@@ -1,5 +1,12 @@
 {{ config(materialized='table',
-alias='fact_orders_table'
+enabled=true,
+            database="snowflake_learning_db",
+            schema="DIMENSIONS",
+            alias="fact_order_dc",
+            grants={
+                "select": ["analyst_tem"]
+            },
+            
 ) }}
 
 with orders as (

@@ -1,4 +1,12 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table',
+            enabled=true,
+            database="snowflake_learning_db",
+            schema="DIMENSIONS",
+            alias="cust_dim",
+            post_hook="GRANT SELECT ON {{ this }} TO ROLE analyst_tem"
+            
+
+) }}
 
 with customer as (
     select

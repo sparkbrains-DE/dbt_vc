@@ -227,17 +227,16 @@
 
 
 # =====================================
-
 name: dbt-prod
 
 on:
   push:
     branches:
       - main
-      
+
 permissions:
   contents: write
-  
+
 jobs:
   dbt-prod:
     runs-on: ubuntu-latest
@@ -258,25 +257,25 @@ jobs:
           pip install --upgrade pip
           pip install dbt-snowflake==1.9.2 snowflake-cli
 
-      - name: Create Snowflake CLI config & profiles.yml
+      - name: Create Snowflake CLI config & dbt profiles
         run: |
           mkdir -p ~/.dbt ~/.snowflake
-          # Snowflake CLI connection (username/password)
+
+          # Snowflake CLI connection
           cat << EOF > ~/.snowflake/config.toml
           [connections.demo_prod]
           account = "${{ secrets.SF_ACCOUNT }}"
           user = "${{ secrets.SF_USER }}"
           password = "${{ secrets.SF_PASSWORD }}"
-          authenticator = "username+password"
           role = "${{ secrets.SF_ROLE }}"
-          database = "temp_db"
           warehouse = "${{ secrets.SF_WAREHOUSE }}"
+          database = "TEMP_DB"
+          schema = "PUBLIC"
           EOF
 
           chmod 600 ~/.snowflake/config.toml
 
-          
-          # dbt profiles.yml - deploys to temp_db.public
+          # dbt profiles.yml
           cat << EOF > ~/.dbt/profiles.yml
           dbt_demo:
             target: prod
@@ -287,34 +286,32 @@ jobs:
                 user: "${{ secrets.SF_USER }}"
                 password: "${{ secrets.SF_PASSWORD }}"
                 role: "${{ secrets.SF_ROLE }}"
-                database: "temp_db"
+                database: "TEMP_DB"
                 warehouse: "${{ secrets.SF_WAREHOUSE }}"
-                schema: "public"
+                schema: "PUBLIC"
                 threads: 1
           EOF
 
       - name: dbt deps
         run: dbt deps --project-dir dbt_demo
 
-      - name: dbt build (FULL) - Validate & Generate Artifacts
+      - name: dbt build (FULL)
         run: dbt build --project-dir dbt_demo --target prod
 
-      # ⭐ DEPLOY TO SNOWFLAKE DBT PROJECT OBJECT (dbt_demo in temp_db.temp_schema)
       - name: Deploy dbt Project to Snowflake
         run: |
-            snow dbt deploy dbt_demo \
-              --source dbt_demo \
-              --profiles-dir ~/.dbt \
-              --default-target prod \
-              --force
+          snow dbt deploy dbt_demo \
+            --connection demo_prod \
+            --source dbt_demo \
+            --profiles-dir ~/.dbt \
+            --default-target prod \
+            --force
 
-      # ⭐ SAVE MANIFEST FOR SLIM CI (optional)
       - name: Save manifest for Slim CI
         run: |
           mkdir -p dbt_state
           cp dbt_demo/target/manifest.json dbt_state/manifest.json
 
-      # ⭐ COMMIT IT BACK TO MAIN
       - name: Commit dbt_state
         run: |
           git config user.name "github-actions"

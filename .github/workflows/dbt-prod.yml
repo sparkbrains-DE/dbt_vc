@@ -305,8 +305,8 @@ jobs:
             --connection demo_prod \
             --source . \
             --profiles-dir ~/.dbt \
-            --default-target prod \
-            --force
+            --default-target prod # \
+            # --force
 
       - name: Save manifest for Slim CI
         run: |
